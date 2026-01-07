@@ -417,7 +417,7 @@ st.markdown(
 # Centrēts logo ar columns
 left_col, center_col, right_col = st.columns([2.4, 2, 1])
 with center_col:
-    st.image("projekts/images/msc_logo.png", width=75)
+    st.image("images/msc_logo.png", width=75)
 
 
 # Navigation
