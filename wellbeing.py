@@ -417,7 +417,7 @@ st.markdown(
 # Centrēts logo ar columns
 left_col, center_col, right_col = st.columns([2.4, 2, 1])
 with center_col:
-    st.image("images/msc_logo.png", width=75)
+    st.image("projekts/images/msc_logo.png", width=75)
 
 
 # Navigation
@@ -434,7 +434,7 @@ if view == "Aizpildīt anketu":
     st.markdown('<div class="form-header">Ievadi savus rādītājus</div>', unsafe_allow_html=True)
     st.markdown('<div class="form-subheader">Nodaļa</div>', unsafe_allow_html=True)
     
-    department = st.selectbox("", ["Finanses", "Mārketings", "IT", "Personāla", "Pārdošana", "Ražošana", "Cita"])
+    department = st.selectbox("", ["Administration", "Customer Invoicing", "Finance & Accounting", "Commercial Reporting & BI", "Information Technology", "OVA", "Documentation, Pricing & Legal"])
     
     st.markdown('<div class="form-divider"></div>', unsafe_allow_html=True)
     
