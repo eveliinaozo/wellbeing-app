@@ -566,7 +566,7 @@ elif view == "HR Dashboard":
                 st.metric("Kopējais atbilžu skaits visās nodaļās", total_responses_all)
                 
                 # Heatmap
-                fig, axs = plt.subplots(1, 2, figsize=(12, max(3, len(grouped)*0.6)))
+                fig, axs = plt.subplots(1, 2, figsize=(18, max(4, len(grouped)*0.7)))
                 colors = ["#8E99BC", "#A6192E"]
                 custom_cmap = sns.blend_palette(colors, as_cmap=True, n_colors=256)
                 
