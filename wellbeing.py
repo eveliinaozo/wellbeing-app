@@ -6,7 +6,13 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import io
 
+
+
 DB_PATH = "wellbeing.db"
+
+# ---------- Session state initialization ----------
+if 'role' not in st.session_state:
+    st.session_state.role = None
 
 # ---------- Database helpers ----------
 def get_conn():
@@ -132,6 +138,7 @@ def load_responses_df():
             "motivation_q1", "motivation_q2", "motivation_q3"
         ])
     return df
+
 def delete_responses(department=None, start_date=None, end_date=None):
     """
     Dzēš datus pēc nodaļas un/vai datuma diapazona.
@@ -161,6 +168,11 @@ def delete_responses(department=None, start_date=None, end_date=None):
 # ----------------------  UI STYLE ADDITIONS  --------------------
 # ---------------------------------------------------------------
 st.set_page_config(page_title="Wellbeing Monitor", layout="wide")
+st.set_page_config(
+    page_title="Wellbeing Monitor", 
+    layout="wide",
+    initial_sidebar_state="collapsed"  # <- šī rindiņa!
+)
 
 # ---- CUSTOM CSS TO MATCH YOUR VISUAL EXAMPLE ----
 # --------- PIEVIENO MATERIAL ICONS FONTU ---------
@@ -171,8 +183,6 @@ st.markdown("""
 # --------- ATJAUNINĀTS CUSTOM CSS ---------
 st.markdown("""
 <style>
- 
-
     /* Pārkrāso stToolbar fonu par baltu */
     div.stAppToolbar.st-emotion-cache-14vh5up {
         background-color: #ffffff !important;
@@ -321,9 +331,6 @@ st.markdown("""
         cursor: pointer;
     }
 
-    /* No global cursor override */
-    /* cursor auto removed to not block sidebar toggle */
-
     /* Mainīt download button fonu un tekstu */
     div.stDownloadButton > button {
         background-color: rgb(238, 212, 132) !important;
@@ -337,10 +344,7 @@ st.markdown("""
     div.stDownloadButton > button:hover {
         background-color: rgb(225, 200, 120) !important;
     }
-        
     
-            
-
     /* MAIN ALERT CONTAINER — remove yellow frame completely */
     div[role="alert"][data-testid="stAlertContainer"] {
         background: transparent !important;
@@ -389,14 +393,26 @@ st.markdown("""
     div[data-baseweb="select"] * {
     cursor: pointer !important;
     }
-
-
-
-
-
-        
 </style>
 """, unsafe_allow_html=True)
+
+# ---------- MAIN NAVIGATION LOGIC ----------
+if st.session_state.role is None:
+    # Centrēts logo ar columns
+    left_col, center_col, right_col = st.columns([2.4, 2, 1])
+    with center_col:
+        st.image("images/msc_logo.png", width=75)
+
+    st.markdown("<h1 style='text-align: center;'>WELL-BEING APP</h1>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1,2,1])  # centrs
+
+    with col2:
+        if st.button("Start Survey", use_container_width=True):
+            st.session_state.role = "employee"
+            st.rerun()
+    
+    st.stop()
 
 # Initialize database with migration support
 init_db()
@@ -419,46 +435,43 @@ left_col, center_col, right_col = st.columns([2.4, 2, 1])
 with center_col:
     st.image("images/msc_logo.png", width=75)
 
-
 # Navigation
-view = st.sidebar.selectbox("Izvēlieties lapu", ["Aizpildīt anketu", "HR Dashboard"])
+view = st.sidebar.selectbox("Select page", ["Fill in survey", "HR Dashboard"])
 HR_PASSWORD = "HR123"
 
 # ---------- FORM PAGE ----------
-if view == "Aizpildīt anketu":
+if view == "Fill in survey":
     
     st.markdown('<div class="main-content">', unsafe_allow_html=True)
     st.markdown('<div class="form-container">', unsafe_allow_html=True)
     st.markdown('<div class="msc-form">', unsafe_allow_html=True)
     
-    st.markdown('<div class="form-header">Ievadi savus rādītājus</div>', unsafe_allow_html=True)
-    st.markdown('<div class="form-subheader">Nodaļa</div>', unsafe_allow_html=True)
+    st.markdown('<div class="form-header">Enter your wellbeing indicators</div>', unsafe_allow_html=True)
+    st.markdown('<div class="form-subheader">Department</div>', unsafe_allow_html=True)
     
     department = st.selectbox("", ["Administration", "Customer Invoicing", "Finance & Accounting", "Commercial Reporting & BI", "Information Technology", "OVA", "Documentation, Pricing & Legal"])
     
-    st.markdown('<div class="form-divider"></div>', unsafe_allow_html=True)
-    
     # ---------- STRESS SECTION ----------
-    st.markdown('<div class="section-title">1.) Darba noslogojums, ko izjūtat ikdienā (0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">1.) How intense do you find your daily workload? (0-10, 0 = very light, 10 = too heavy)</div>', unsafe_allow_html=True)
     stress_q1 = st.slider("", 0, 10, 5, key="stress_q1")
 
-    st.markdown('<div class="section-title">2.) Trauksmes vai satraukuma līmenis saistībā ar darba jautājumiem (0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">2.) To what extent do work-related issues cause you anxiety? (0-10, 0 = not at all, 10 = to a very great extent)</div>', unsafe_allow_html=True)
     stress_q2 = st.slider("", 0, 10, 5, key="stress_q2")
 
-    st.markdown('<div class="section-title">3.) Izsīkuma un noguruma pakāpe darba dēļ (0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">3.) How exhausted do you feel due to your work? (0-10, 0 = not exhausted at all, 10 = extremely exhausted)</div>', unsafe_allow_html=True)
     stress_q3 = st.slider("", 0, 10, 5, key="stress_q3")
     
     # Aprēķina stress vidējo (tikai attēlošanai)
     stress_avg = round((stress_q1 + stress_q2 + stress_q3) / 3, 2)
     
     # ---------- MOTIVATION SECTION ----------
-    st.markdown('<div class="section-title">4.) Motivācija doties uz darbu un iesaistīties ikdienas pienākumos (0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">4.) Rate your motivation to perform daily work tasks. (0-10, 0 = not motivated at all, 10 = extremely motivated)</div>', unsafe_allow_html=True)
     motivation_q1 = st.slider("", 0, 10, 5, key="motivation_q1")
 
-    st.markdown('<div class="section-title">5.) Iedvesma, ko sniedz jūsu komanda un vadītājs(0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">5.) How inspired do you feel at work?(0-10, 0 = not inspired at all, 10 = extremely inspired)</div>', unsafe_allow_html=True)
     motivation_q2 = st.slider("", 0, 10, 5, key="motivation_q2")
 
-    st.markdown('<div class="section-title">6.) Novērtējuma sajūta par darbu, ko veicat(0-10)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">6.) Rate how valued you feel for the work you do. (0-10, 0 = not valued at all, 10 = extremely valued)</div>', unsafe_allow_html=True)
     motivation_q3 = st.slider("", 0, 10, 5, key="motivation_q3")
     
     # Aprēķina motivation vidējo (tikai attēlošanai)
@@ -467,15 +480,13 @@ if view == "Aizpildīt anketu":
     # Parāda aprēķinātās vidējās vērtības
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Jūsu vidējais stress ", f"{stress_avg}/10")
+        st.metric("Your average stress ", f"{stress_avg}/10")
     with col2:
-        st.metric("Jūsu vidējā motivācija ", f"{motivation_avg}/10")
+        st.metric("Your average motivation ", f"{motivation_avg}/10")
     
-    st.markdown('<div class="form-divider"></div>', unsafe_allow_html=True)
-    
-    if st.button("Iesniegt"):
+    if st.button("Submit"):
         add_response(department, stress_q1, stress_q2, stress_q3, motivation_q1, motivation_q2, motivation_q3)
-        st.success("Paldies — jūsu atbilde ir saglabāta.")
+        st.success("Thank you — your response has been saved.")
     
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -488,39 +499,45 @@ elif view == "HR Dashboard":
     st.markdown('<div class="msc-form">', unsafe_allow_html=True)
     
     st.markdown('<div class="form-header">HR Dashboard</div>', unsafe_allow_html=True)
-    st.markdown('<div class="form-subheader">Pārskats pa nodaļām</div>', unsafe_allow_html=True)
+    st.markdown('<div class="form-subheader">Overview by department</div>', unsafe_allow_html=True)
     
-    hr_pw = st.text_input("Ievadiet HR paroli", type="password", key="hr_password")
+    hr_pw = st.text_input("Enter HR password", type="password", key="hr_password")
     
     if hr_pw == HR_PASSWORD:
         df = load_responses_df()
         
         if df.empty:
-            st.info("Datu vēl nav.")
+            st.info("No data available yet.")
         else:
             # HR izvēles: nodaļa un periods
             all_departments = sorted(df['department'].unique())
             selected_dept = st.selectbox(
-                "Izvēlieties nodaļu vai skatu:",
-                ["Visas nodaļas"] + all_departments,
+                "Select department or view:",
+                ["All departments"] + all_departments,
                 key="hr_select_dept"
             )
-            
-            start_date = st.date_input("Sākuma datums", value=df['timestamp'].min().date(), key="hr_start_date")
-            end_date = st.date_input("Beigu datums", value=df['timestamp'].max().date(), key="hr_end_date")
+            st.markdown("""
+            <div style="font-size:14px; margin-bottom:10px; color:#555;">
+            Choose the time period you would like to analyze.  
+            The dashboard will automatically update to show responses submitted during this period.
+            </div>
+            """, unsafe_allow_html=True)
+
+            start_date = st.date_input("Start date", value=df['timestamp'].min().date(), key="hr_start_date")
+            end_date = st.date_input("End date", value=df['timestamp'].max().date(), key="hr_end_date")
             
             # Filtrējam datus pēc datumiem
             filtered_df = df[(df['timestamp'].dt.date >= start_date) & 
                              (df['timestamp'].dt.date <= end_date)]
             
-            if selected_dept != "Visas nodaļas":
+            if selected_dept != "All departments":
                 filtered_df = filtered_df[filtered_df['department'] == selected_dept]
             
             # ---------------- Excel lejupielāde ----------------
             if not filtered_df.empty:
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    if selected_dept == "Visas nodaļas":
+                    if selected_dept == "All departments":
                         df_to_export = filtered_df.groupby('department')[[
                             'stress_q1','stress_q2','stress_q3','motivation_q1','motivation_q2','motivation_q3'
                         ]].mean().round(2).reset_index()
@@ -537,14 +554,14 @@ elif view == "HR Dashboard":
                 output.seek(0)
                 
                 st.download_button(
-                    label=f"⬇ Lejupielādēt Excel ({selected_dept})",
+                    label=f"⬇ Download Excel ({selected_dept})",
                     data=output,
                     file_name=file_name,
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key=f"download_{selected_dept}"
                 )
             else:
-                st.info("Nav datu izvēlētajā periodā/nodaļā.")
+                st.info("No data available for the selected period or department.")
             
             # ---------------- Heatmap un kritiskās nodaļas ----------------
             filtered_df = filtered_df.copy()
@@ -552,7 +569,7 @@ elif view == "HR Dashboard":
             filtered_df['stress'] = filtered_df[['stress_q1','stress_q2','stress_q3']].mean(axis=1)
             filtered_df['motivation'] = filtered_df[['motivation_q1','motivation_q2','motivation_q3']].mean(axis=1)
 
-            if selected_dept == "Visas nodaļas":
+            if selected_dept == "All departments":
                 grouped = filtered_df.groupby('department')[['motivation','stress']].mean().round(2)
                 
                 # Pievieno atbilžu skaitu
@@ -563,21 +580,21 @@ elif view == "HR Dashboard":
 
                 # Kopējais atbilžu skaits visām nodaļām
                 total_responses_all = filtered_df.shape[0]
-                st.metric("Kopējais atbilžu skaits visās nodaļās", total_responses_all)
+                st.metric("Total number of responses (all departments)", total_responses_all)
                 
                 # Heatmap
-                fig, axs = plt.subplots(1, 2, figsize=(18, max(4, len(grouped)*0.7)))
+                fig, axs = plt.subplots(1, 2, figsize=(18, max(4, len(grouped)*0.)))
                 colors = ["#8E99BC", "#A6192E"]
                 custom_cmap = sns.blend_palette(colors, as_cmap=True, n_colors=256)
                 
                 sns.heatmap(grouped[['motivation']].T, annot=True, fmt=".2f", cmap=custom_cmap, ax=axs[0], vmin=0, vmax=10,
                             annot_kws={'color': 'black', 'fontweight': 'bold', 'fontsize': 12})
-                axs[0].set_title('Motivation (augstāks = labāk)')
+                axs[0].set_title('Motivation (higher = better)')
                 axs[0].set_ylabel('')
                 
                 sns.heatmap(grouped[['stress']].T, annot=True, fmt=".2f", cmap=custom_cmap, ax=axs[1], vmin=0, vmax=10,
                             annot_kws={'color': 'black', 'fontweight': 'bold', 'fontsize': 12})
-                axs[1].set_title('Stress (augstāks = sliktāk)')
+                axs[1].set_title('Stress (higher = worse)')
                 axs[1].set_ylabel('')
                 
                 fig.patch.set_facecolor('white')
@@ -588,13 +605,10 @@ elif view == "HR Dashboard":
                 
                 critical = grouped[(grouped['stress'] >= 7) | (grouped['motivation'] <= 4)]
                 if critical.empty:
-                    st.success("👍 Nav kritisku nodaļu.")
+                    st.success("👍 No critical departments identified.")
                 else:
-                    st.warning("⚠ Atrastas kritiskas nodaļas:")
+                    st.warning("⚠ Critical departments identified:")
                     st.dataframe(critical)
-                
-                
-
             
             else:
                 dept_data = filtered_df[filtered_df['department'] == selected_dept]
@@ -604,9 +618,9 @@ elif view == "HR Dashboard":
                     total_responses = len(dept_data)
                     
                     col1, col2, col3 = st.columns(3)
-                    col1.metric("Vidējā motivācija", f"{avg_motivation}/10")
-                    col2.metric("Vidējais stress", f"{avg_stress}/10")
-                    col3.metric("Atbilžu skaits", total_responses)
+                    col1.metric("Average motivation", f"{avg_motivation}/10")
+                    col2.metric("Average stress", f"{avg_stress}/10")
+                    col3.metric("Number of responses", total_responses)
                     
                     # Heatmap vienai nodaļai
                     single_dept_data = pd.DataFrame({
@@ -629,22 +643,86 @@ elif view == "HR Dashboard":
                                ax=ax_single, 
                                vmin=0, 
                                vmax=10,
-                               cbar_kws={'label': 'Vērtējums (0-10)'},
+                               cbar_kws={'label': 'Rating (0-10)'},
                                annot_kws={'color': 'black', 'fontweight': 'bold', 'fontsize': 14})
                     
-                    ax_single.set_title(f'{selected_dept} - rādītāju salīdzinājums')
+                    ax_single.set_title(f'{selected_dept} - Comparison of indicators')
                     ax_single.set_ylabel('')
                     ax_single.set_facecolor('white')
                     fig_single.patch.set_facecolor('white')
                     
                     plt.tight_layout()
                     st.pyplot(fig_single)
-        
-        # ---------------- Dzēšanas sadaļa apakšā ----------------
+                    
+                    # ============= COMBINED MONTHLY VIEW STABIŅU DIAGRAMMA =============
+                    st.markdown('<div class="section-title" style="font-size: 20px; margin-top: 40px;">Monthly trends for ' + selected_dept + '</div>', unsafe_allow_html=True)
+                    st.markdown("""
+                    <div style="font-size:13px; margin-top:15px; color:#666;">
+                    <b>Interpretation note:</b>  
+                    Stress scores represent negative wellbeing (higher values = more stress),  
+                    while motivation scores represent positive engagement (higher values = more motivation).
+                    </div>
+                    """, unsafe_allow_html=True)
+                    # Izveido mēneša kolonnu
+                    dept_data['month'] = dept_data['timestamp'].dt.strftime('%Y-%m')
+                    
+                    # Grupē pēc mēneša
+                    monthly_dept = dept_data.groupby('month').agg({
+                        'stress': 'mean',
+                        'motivation': 'mean',
+                        'id': 'count'  # skaits
+                    }).reset_index().round(2)
+                    
+                    # Sakārto mēnešus alfabētiski (chronoloģiski)
+                    monthly_dept = monthly_dept.sort_values('month')
+                    
+                    if not monthly_dept.empty:
+                        # Bar colors
+                        bar_color_motivation = '#8E99BC'  # zils/grišs motivācijai
+                        bar_color_stress = '#A6192E'      # sarkans stresam
+                        
+                        fig3, ax3 = plt.subplots(figsize=(12, 6))
+                        
+                        x = range(len(monthly_dept['month']))
+                        width = 0.35
+                        
+                        bars_motivation = ax3.bar([i - width/2 for i in x], monthly_dept['motivation'], 
+                                                 width, label='Motivation', color=bar_color_motivation, 
+                                                 edgecolor='black', linewidth=1)
+                        bars_stress = ax3.bar([i + width/2 for i in x], monthly_dept['stress'], 
+                                             width, label='Stress', color=bar_color_stress, 
+                                             edgecolor='black', linewidth=1)
+                        
+                        ax3.set_title(f'{selected_dept} - Monthly averages comparison', fontweight='bold', fontsize=16, pad=20)
+                        ax3.set_ylabel('Rating (0-10)', fontweight='bold')
+                        ax3.set_xlabel('Month', fontweight='bold')
+                        ax3.set_xticks(x)
+                        ax3.set_xticklabels(monthly_dept['month'], rotation=45, ha='right')
+                        ax3.grid(True, axis='y', linestyle='--', alpha=0.3)
+                        ax3.set_ylim(0, 10)
+                        ax3.legend(fontsize=12)
+                        
+                        # Pievieno vērtības virs stabiņiem
+                        for bars in [bars_motivation, bars_stress]:
+                            for bar in bars:
+                                height = bar.get_height()
+                                ax3.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                                        f'{height:.1f}', ha='center', va='bottom', fontweight='bold', fontsize=9)
+                        
+                        fig3.patch.set_facecolor('white')
+                        ax3.set_facecolor('white')
+                        plt.tight_layout()
+                        st.pyplot(fig3)
+                        
+                        # Rādīt atbilžu skaitu pa mēnešiem
+                        st.markdown('<div class="section-title" style="font-size: 16px; margin-top: 20px;">Responses per month</div>', unsafe_allow_html=True)
+                        responses_by_month = monthly_dept[['month', 'id']].rename(columns={'id': 'responses'})
+                        st.dataframe(responses_by_month.set_index('month'))
+
         # ---------------- Dzēšanas sadaļa apakšā ----------------
         st.markdown('<hr>', unsafe_allow_html=True)
-        st.markdown('<div class="section-title" style="font-size: 18px;">⚠ Dzēst datus</div>', unsafe_allow_html=True)
-        st.markdown("Izvēlies datumu diapazonu, lai dzēstu atbilstošos ierakstus.")
+        st.markdown('<div class="section-title" style="font-size: 18px;">⚠ Delete data</div>', unsafe_allow_html=True)
+        st.markdown("Select a date range to permanently delete records.")
 
         # Pārvēršam timestamp uz datetime
         df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
@@ -656,19 +734,18 @@ elif view == "HR Dashboard":
             min_date = df['timestamp'].min().date()
             max_date = df['timestamp'].max().date()
 
-        del_start = st.date_input("Sākuma datums dzēšanai", value=min_date, key="del_start")
-        del_end = st.date_input("Beigu datums dzēšanai", value=max_date, key="del_end")
+        del_start = st.date_input("Delete from date", value=min_date, key="del_start")
+        del_end = st.date_input("Delete to date", value=max_date, key="del_end")
 
-        confirm_delete = st.checkbox("Es apzinos, ka dzēšanas darbība ir neatgriezeniska", key="confirm_delete")
+        confirm_delete = st.checkbox("I understand that this action is irreversible", key="confirm_delete")
 
-        if confirm_delete and st.button("Dzēst izvēlētos datus", key="delete_button"):
-            dept_param = None if selected_dept == "Visas nodaļas" else selected_dept
+        if confirm_delete and st.button("Delete selected data", key="delete_button"):
+            dept_param = None if selected_dept == "All departments" else selected_dept
             delete_responses(department=dept_param, start_date=del_start, end_date=del_end)
-            st.success("✅ Dati veiksmīgi dzēsti.")
-
+            st.success("✅ Data successfully deleted.")
     
     elif hr_pw:
-        st.error("Nepareiza parole.")
+        st.error("Incorrect password.")
     
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
