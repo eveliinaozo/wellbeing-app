@@ -167,12 +167,12 @@ def delete_responses(department=None, start_date=None, end_date=None):
 # ---------------------------------------------------------------
 # ----------------------  UI STYLE ADDITIONS  --------------------
 # ---------------------------------------------------------------
-st.set_page_config(page_title="Wellbeing Monitor", layout="wide")
 st.set_page_config(
-    page_title="Wellbeing Monitor", 
+    page_title="Wellbeing Monitor",
     layout="wide",
-    initial_sidebar_state="collapsed"  # <- šī rindiņa!
+    initial_sidebar_state="collapsed"
 )
+
 
 # ---- CUSTOM CSS TO MATCH YOUR VISUAL EXAMPLE ----
 # --------- PIEVIENO MATERIAL ICONS FONTU ---------
@@ -447,10 +447,25 @@ if view == "Fill in survey":
     st.markdown('<div class="msc-form">', unsafe_allow_html=True)
     
     st.markdown('<div class="form-header">Enter your wellbeing indicators</div>', unsafe_allow_html=True)
-    st.markdown('<div class="form-subheader">Department</div>', unsafe_allow_html=True)
+    # st.markdown('<div class="form-subheader">Department</div>', unsafe_allow_html=True)
     
-    department = st.selectbox("", ["Administration", "Customer Invoicing", "Finance & Accounting", "Commercial Reporting & BI", "Information Technology", "OVA", "Documentation, Pricing & Legal"])
-    
+    departments = [
+        "Administration",
+        "Customer Invoicing",
+        "Finance & Accounting",
+        "Commercial Reporting & BI",
+        "Information Technology",
+        "OVA",
+        "Documentation, Pricing & Legal"
+    ]
+
+    department = st.selectbox(
+        "Department",
+        ["Select department"] + departments,
+        index=0,
+        key="employee_department"
+    )
+
     # ---------- STRESS SECTION ----------
     st.markdown('<div class="section-title">1.) How intense do you find your daily workload? (0-10, 0 = very light, 10 = too heavy)</div>', unsafe_allow_html=True)
     stress_q1 = st.slider("", 0, 10, 5, key="stress_q1")
@@ -485,8 +500,15 @@ if view == "Fill in survey":
         st.metric("Your average motivation ", f"{motivation_avg}/10")
     
     if st.button("Submit"):
-        add_response(department, stress_q1, stress_q2, stress_q3, motivation_q1, motivation_q2, motivation_q3)
-        st.success("Thank you — your response has been saved.")
+        if department == "Select department":
+            st.warning("Please select a department before submitting.")
+        else:
+            add_response(
+                department,
+                stress_q1, stress_q2, stress_q3,
+                motivation_q1, motivation_q2, motivation_q3
+            )
+            st.success("Thank you — your response has been saved.")
     
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -516,6 +538,13 @@ elif view == "HR Dashboard":
                 ["All departments"] + all_departments,
                 key="hr_select_dept"
             )
+           
+            # Ja izvēlas "Select department", filtrēšanu neveic
+            if selected_dept == "Select department":
+                filtered_df = df.copy()
+            else:
+                filtered_df = df[df['department'] == selected_dept]
+
             st.markdown("""
             <div style="font-size:14px; margin-bottom:10px; color:#555;">
             Choose the time period you would like to analyze.  
@@ -575,7 +604,7 @@ elif view == "HR Dashboard":
                 # Pievieno atbilžu skaitu
                 grouped['total_responses'] = filtered_df.groupby('department').size()
                 
-                st.markdown('<div class="section-title" style="font-size: 20px; margin-top: 30px;">Vidējie rādītāji pa nodaļām</div>', unsafe_allow_html=True)
+                st.markdown('<div class="section-title" style="font-size: 20px; margin-top: 30px;">Average indicators by department</div>', unsafe_allow_html=True)
                 st.dataframe(grouped)
 
                 # Kopējais atbilžu skaits visām nodaļām
@@ -584,18 +613,24 @@ elif view == "HR Dashboard":
                 
                 # Heatmap
                 fig, axs = plt.subplots(1, 2, figsize=(18, max(4, len(grouped)*0.)))
-                colors = ["#8E99BC", "#A6192E"]
-                custom_cmap = sns.blend_palette(colors, as_cmap=True, n_colors=256)
+                # Motivation: zils = labs (10), sarkans = slikts (0)
+                motivation_cmap = sns.blend_palette(["#A6192E", "#8E99BC"], as_cmap=True, n_colors=256)
+
+                # Stress: sarkans = slikts (10), zils = labs (0)
+                stress_cmap = sns.blend_palette(["#8E99BC", "#A6192E"], as_cmap=True, n_colors=256)
+
                 
-                sns.heatmap(grouped[['motivation']].T, annot=True, fmt=".2f", cmap=custom_cmap, ax=axs[0], vmin=0, vmax=10,
+                sns.heatmap(grouped[['motivation']].T, annot=True, fmt=".2f", cmap=motivation_cmap, ax=axs[0], vmin=0, vmax=10,
                             annot_kws={'color': 'black', 'fontweight': 'bold', 'fontsize': 12})
                 axs[0].set_title('Motivation (higher = better)')
                 axs[0].set_ylabel('')
                 
-                sns.heatmap(grouped[['stress']].T, annot=True, fmt=".2f", cmap=custom_cmap, ax=axs[1], vmin=0, vmax=10,
+                sns.heatmap(grouped[['stress']].T, annot=True, fmt=".2f", cmap=stress_cmap, ax=axs[1], vmin=0, vmax=10,
                             annot_kws={'color': 'black', 'fontweight': 'bold', 'fontsize': 12})
                 axs[1].set_title('Stress (higher = worse)')
                 axs[1].set_ylabel('')
+                axs[1].invert_yaxis()  # stress heatmap ass atgriež pareizajā orientācijā
+
                 
                 fig.patch.set_facecolor('white')
                 axs[0].set_facecolor('white')
